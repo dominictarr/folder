@@ -139,7 +139,7 @@ function translate(shape, move) {
   return add(e, move)
 }
 
-console.log('<svg viewBox="0 0 120 240" xmlns="http://www.w3.org/2000/svg">')
+console.log('<svg viewBox="0 0 240 120" xmlns="http://www.w3.org/2000/svg">')
 
 var keel = [[0, 15], [65, 6], [180, 5], [240, 10]]
 var chine = [[0, 0], [120, 20], [240, 15]]
