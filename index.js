@@ -64,7 +64,6 @@ function curve (__points, steps) {
   for(var i = 0; i < _points.length; i += 2)
     points.push([_points[i], _points[i+1]])
   console.error(points.length, _points.length, points[points.length-1])
-//  console.error(points)
   return points
 }
 
@@ -150,7 +149,8 @@ var chineSpline = resample(curve(chine, 40), 21)
 
 var bottom =
   toTeeth(keelSpline, 1, true).reverse()
-  .concat( translate(toTeeth(curve(chine, 22), 1, true), [0, 30]) )
+//  .concat( translate(toTeeth(curve(chine, 22), 1, true), [0, 30]) )
+  .concat( translate(toTeeth(chineSpline, 1, false), [0, 30]) )
 
 var side = 
     [[0, 0]].concat(
@@ -164,9 +164,13 @@ side = side.map(function (e) { return add(e, [0, h+10]) })
 console.log('<path fill="none" stroke="red" d="' +toPath(bottom) + ' Z"/>')
 console.log('<path fill="none" stroke="blue" d="' +toPath(side) + ' Z"/>')
 
-resample(keelSpline, 21).forEach(function (p) {
-  console.log('<rect fill="black" x="'+ p[0] +'" y="'+ p[1] +'" width="1" height="1"/>')
-})
+//resample(keelSpline, 21).forEach(function (p) {
+//  console.log('<rect fill="black" x="'+ p[0] +'" y="'+ p[1] +'" width="1" height="1"/>')
+//})
 
 console.log('</svg>')
+
+
+
+
 
