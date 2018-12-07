@@ -81,19 +81,33 @@ function toTeeth (path, dir, odd) {
 //  return path
 //  return [].splice.call(path)
   var points = []
-  for(var i = 0; i< path.length; i++) {
-    if(i) {
-      var v = mult(toVector(toAngle(sub(path[i], path[i-1])) - (Math.PI/2)), 2)
+  for(var i = 0; i < path.length; i++) {
+    if(true && i) {
+      var v = mult(toVector(toAngle(
+          //on the very first point, use the next point
+          //on the others, use the previous point.
+          !i ? sub(path[i], path[i+1]) :
+          sub(path[i], path[i-1])
+        ) - (Math.PI/2)), 2)
       var _e = add(path[i], v)
       if(!!(i % 2) == !!odd) {
         points.push(path[i])
+        if(true && i) points.push(_e)
+      } else  {
         points.push(_e)
-      } else {
+        if(true && i) points.push(path[i])
+      }
+
+    } else {
+      var v = mult(toVector(toAngle(sub(path[i], path[i+1])) - (Math.PI/2)), 2)
+      var _e = add(path[i], v)
+      if(odd) {
         points.push(_e)
         points.push(path[i])
+      } else {
+        points.push(path[i])
+        points.push(_e)
       }
-    } else {
-      points.push(path[i])
     }
   }
   return points
@@ -149,12 +163,13 @@ var chineSpline = resample(curve(chine, 40), 21)
 
 var bottom =
   toTeeth(keelSpline, 1, true).reverse()
-//  .concat( translate(toTeeth(curve(chine, 22), 1, true), [0, 30]) )
-  .concat( translate(toTeeth(chineSpline, 1, false), [0, 30]) )
+  .concat(
+    translate(toTeeth(chineSpline, 1, false).slice(1), [0, 30])
+  )
 
 var side = 
     [[0, 0]].concat(
-      translate(toTeeth(chineSpline, 1, true), [0, 20])
+      translate(toTeeth(chineSpline, 1, true).slice(1), [0, 20])
     ).concat([[240, 0]])
 
 var h = height(bottom)
@@ -169,8 +184,5 @@ console.log('<path fill="none" stroke="blue" d="' +toPath(side) + ' Z"/>')
 //})
 
 console.log('</svg>')
-
-
-
 
 
