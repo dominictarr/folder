@@ -1,60 +1,5 @@
 var cardinal = require('cardinal-spline-js/src/curve_calc').getCurvePoints
-
-function assertNumber(n) {
-  if(isNaN(n)) throw new Error('NaN')
-  return n
-}
-
-function toAngle (v) {
-  return Math.atan(v[1]/v[0])
-}
-
-function toVector (a) {
-  return [Math.cos(a), Math.sin(a)]
-}
-
-function mult(a, v) {
-  return [a[0]*v, a[1]*v]
-}
-
-function add(a, b) {
-  return [a[0]+b[0], a[1]+b[1]]
-}
-
-function sub(a, b) {
-  return [a[0]-b[0], a[1]-b[1]]
-}
-
-function mul(v, s) {
-  return [v[0]*s, v[1]*s]
-}
-
-function isShape(v) {
-  return Array.isArray(v) && v.length > 0 ? Array.isArray(v[0]) : true
-}
-
-function height (p) {
-  var min = Infinity, max = -Infinity
-  for(var i = 0; i < p.length; i++) {
-    var y = p[i][1]
-    if(y > max) max = y
-    else if(y < min) min = y
-  }
-  return max - min
-}
-
-function length (p) {
-  if(isShape(p)) {
-    var l = 0
-    for(var i = 1; i < p.length; i++)
-      l += length(sub(p[i-1], p[i]))
-    return l
-  }
-
-  return Math.sqrt(p[0]*p[0]+p[1]*p[1])
-}
-
-/// ------------------------------
+var _ = require('./vector')
 
 function curve (__points, steps) {
   var points = []
@@ -63,7 +8,6 @@ function curve (__points, steps) {
   }), 0.5, Math.ceil(steps/(__points.length-1)))
   for(var i = 0; i < _points.length; i += 2)
     points.push([_points[i], _points[i+1]])
-  console.error(points.length, _points.length, points[points.length-1])
   return points
 }
 
@@ -71,25 +15,20 @@ function toPath(points) {
   var s = 'M '+points[0].join(',') + ' '
   for(var i = 1; i < points.length; i++)
     s += 'L '+points[i].join(',') + ' '
-  //s += 'L '+points[0].join(',')
-  console.error(points[points.length-1])
   return s
 }
 
-
 function toTeeth (path, dir, odd) {
-//  return path
-//  return [].splice.call(path)
   var points = []
   for(var i = 0; i < path.length; i++) {
     if(true && i) {
-      var v = mult(toVector(toAngle(
+      var v = _.mul(_.toVector(_.toAngle(
           //on the very first point, use the next point
           //on the others, use the previous point.
-          !i ? sub(path[i], path[i+1]) :
-          sub(path[i], path[i-1])
+          !i ? v.sub(path[i], path[i+1]) :
+          _.sub(path[i], path[i-1])
         ) - (Math.PI/2)), 2)
-      var _e = add(path[i], v)
+      var _e = _.add(path[i], v)
       if(!!(i % 2) == !!odd) {
         points.push(path[i])
         if(true && i) points.push(_e)
@@ -99,8 +38,8 @@ function toTeeth (path, dir, odd) {
       }
 
     } else {
-      var v = mult(toVector(toAngle(sub(path[i], path[i+1])) - (Math.PI/2)), 2)
-      var _e = add(path[i], v)
+      var v = _.mul(_.toVector(_.toAngle(_.sub(path[i], path[i+1])) - (Math.PI/2)), 2)
+      var _e = _.add(path[i], v)
       if(odd) {
         points.push(_e)
         points.push(path[i])
@@ -113,25 +52,18 @@ function toTeeth (path, dir, odd) {
   return points
 }
 
-function round(p, dist) {
-  return [
-    Math.round(p[0]*(1/dist))*dist,
-    Math.round(p[1]*(1/dist))*dist
-  ]
-}
-
 function resample (path, parts) {
-  var l = length(path)
+  var l = _.length(path)
   var output = [], consumed = 0
   output.push(path[0])
   var point = path[0], i = 1, step = l/parts
   //check step > 0 to handle edge case of rounding error at final edge.
   while(i < path.length && step > 0) {
     var _point = path[i]
-    var diff = sub(_point, point)
-    var _l = length(diff)
+    var diff = _.sub(_point, point)
+    var _l = _.length(diff)
     if(step < _l) {
-      output.push(point = add(point, mul(diff, step/_l)))
+      output.push(point = _.add(point, _.mul(diff, step/_l)))
       consumed += step
       step = (l-consumed)/(parts-output.length)
     } else {
@@ -147,13 +79,6 @@ function resample (path, parts) {
   return output
 }
 
-function translate(shape, move) {
-  if(isShape(shape)) return shape.map(function (e) { return add(e, move) })
-  return add(e, move)
-}
-
-console.log('<svg viewBox="-10 -10 260 140" xmlns="http://www.w3.org/2000/svg">')
-
 var keel = [[0, 15], [65, 6], [180, 5], [240, 10]]
 var chine = [[0, 0], [120, 20], [240, 15]]
 //side
@@ -161,27 +86,101 @@ var chine = [[0, 0], [120, 20], [240, 15]]
 var keelSpline = resample(curve(keel, 40), 21)
 var chineSpline = resample(curve(chine, 40), 21)
 
-var bottom =
-  toTeeth(keelSpline, 1, true).reverse()
+function side(port) {
+  return [[0, 0]].concat(
+    _.translate(toTeeth(chineSpline, 1, true).slice(1), [0, 20])
+  ).concat([[240, 0]])
+}
+
+function flip (path) {
+  var top = _.top(path)
+  var bottom = _.bottom(path)
+  var height = bottom - top
+  return path.map(function (e) {
+    return [e[0], top = (bottom - e[1])]
+  })
+}
+
+function bottom (port) {
+  return toTeeth(keelSpline, 1, !!port).reverse()
   .concat(
-    translate(toTeeth(chineSpline, 1, false).slice(1), [0, 30])
+    _.translate(toTeeth(chineSpline, 1, false).slice(1), [0, 30])
   )
+}
 
-var side = 
-    [[0, 0]].concat(
-      translate(toTeeth(chineSpline, 1, true).slice(1), [0, 20])
-    ).concat([[240, 0]])
 
-var h = height(bottom)
+//console.log('<path fill="none" stroke="blue" d="' + toPath(side) + ' Z"/>')
+//console.log('<path fill="none" stroke="red" d="' +toPath(bottom) + ' Z"/>')
 
-side = side.map(function (e) { return add(e, [0, h+10]) })
+var parts = [
+  side(),
+  _.translate(flip(bottom(true)), [0, 45]),
+  _.translate(bottom(), [0, 95]),
+  _.translate(flip(side()), [0, 150])
+]
 
-console.log('<path fill="none" stroke="red" d="' +toPath(bottom) + ' Z"/>')
-console.log('<path fill="none" stroke="blue" d="' +toPath(side) + ' Z"/>')
+console.log('<svg viewBox="-10 -10 250 220" xmlns="http://www.w3.org/2000/svg">')
 
-//resample(keelSpline, 21).forEach(function (p) {
-//  console.log('<rect fill="black" x="'+ p[0] +'" y="'+ p[1] +'" width="1" height="1"/>')
+//show plywood sheets...
+//console.log('<rect fill="none" stroke="green" x="0" y="0" width="240" height="120" />')
+//console.log('<rect fill="none" stroke="green" x="0" y="120" width="240" height="120" />')
+
+
+function cut (path, colour) {
+  console.log('<path fill="none" stroke="' + (colour || 'red') + '" d="'+toPath(path) + ' Z"/>')
+}
+
+//parts.forEach(function (path) {
+//
 //})
+
+function toHoles(path, edge) {
+  var points = resample(curve(path, 40), 61).filter(function (_, i) {
+    return !(i%3)
+  })
+  points[0] = _.add(points[0], [edge, 0])
+  points[points.length-1] = _.add(points[points.length-1], [-edge, 0])
+  return points
+}
+
+function drill(holes) {
+  holes.forEach(function (e, i) {
+    console.log('<circle fill="none" stroke="black" cx="'+e[0]+'" cy="'+e[1]+'" r="0.5" />');
+  })
+}
+
+function g() {
+}
+
+var _keel = keel.slice()
+
+//drill(toHoles(flip(_keel), 2))
+//side
+cut(parts[0], "red")
+  console.log("<g>")
+  g(drill(_.translate(toHoles(chine, 2), [0, _.bottom(parts[0]) - _.bottom(chine) - 5])))
+  console.log("</g>")
+
+cut(parts[1], "blue")
+  console.log("<g>")
+  g(drill(_.translate(flip(toHoles(chine, 2)), [0, _.top(parts[1]) - _.top(chine) + 5])))
+  g(drill(_.translate(flip(toHoles(keel, 2)), [0, _.bottom(parts[1]) - _.bottom(flip(keel)) - 5])))
+  console.log("</g>")
+
+cut(parts[2], "green")
+  console.log("<g>")
+  g(drill(_.translate(toHoles(keel, 2), [0, _.top(parts[2]) - _.top(keel) + 5])))
+  g(drill(_.translate(toHoles(chine, 2), [0, _.bottom(parts[2]) - _.bottom(chine) - 5])))
+  console.log("</g>")
+
+cut(parts[3], "yellow")
+  console.log("<g>")
+  g(drill(_.translate(toHoles(flip(chine), 2), [0, _.top(parts[3]) - _.top(chine) + 5])))
+  console.log("</g>")
+
+//drill(_.translate(flip(toHoles(keel, 2)), [0, _.bottom(parts[1]) - _.bottom(flip(keel)) - 5]))
+//drill(_.translate(toHoles(keel, 2), [0, _.top(parts[2]) - _.top(keel) + 5]))
+
 
 console.log('</svg>')
 
