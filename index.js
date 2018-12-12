@@ -80,8 +80,7 @@ function resample (path, parts) {
 }
 
 var keel = [[0, 15], [65, 6], [180, 5], [240, 10]]
-var chine = [[0, 0], [120, 20], [240, 15]]
-//side
+var chine = [[0, 0], [60, 14], [120, 22], [200, 17], [240, 9]]
 
 var keelSpline = resample(curve(keel, 40), 21)
 var chineSpline = resample(curve(chine, 40), 21)
@@ -104,7 +103,8 @@ function flip (path) {
 function bottom (port) {
   return toTeeth(keelSpline, 1, !!port).reverse()
   .concat(
-    _.translate(toTeeth(chineSpline, 1, false).slice(1), [0, 30])
+
+    _.translate(toTeeth(chineSpline, 1, false).slice(1), [0, 40])
   )
 }
 
@@ -115,11 +115,11 @@ function bottom (port) {
 var parts = [
   side(),
   _.translate(flip(bottom(true)), [0, 45]),
-  _.translate(bottom(), [0, 95]),
-  _.translate(flip(side()), [0, 150])
+  _.translate(bottom(), [0, 105]),
+  _.translate(flip(side()), [0, 170])
 ]
 
-console.log('<svg viewBox="-10 -10 250 220" xmlns="http://www.w3.org/2000/svg">')
+console.log('<svg viewBox="-10 -10 250 240" xmlns="http://www.w3.org/2000/svg">')
 
 //show plywood sheets...
 //console.log('<rect fill="none" stroke="green" x="0" y="0" width="240" height="120" />')
@@ -183,5 +183,6 @@ cut(parts[3], "yellow")
 
 
 console.log('</svg>')
+
 
 
