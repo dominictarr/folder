@@ -100,7 +100,7 @@ var chineSpline = resample(curve(chine, 40), 21)
 function side(port) {
   return [[0, 0]].concat(
     _.translate(toTeeth(chineSpline, 1, true).slice(1), [0, 20])
-  ).concat([[240, 0]])
+  ).concat([[240, 5]])
 }
 
 function flip (path) {
