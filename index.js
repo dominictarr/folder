@@ -98,9 +98,9 @@ var keelSpline = resample(curve(keel, 40), 21)
 var chineSpline = resample(curve(chine, 40), 21)
 
 function side(port) {
-  return [[0, 0]].concat(
+  return [].concat(
     _.translate(toTeeth(chineSpline, 1, true).slice(1), [0, 20])
-  ).concat([[240, 5]])
+  ).concat(curve([[240, 5], [80, 3], [0,0]], 40))
 }
 
 function flip (path) {
