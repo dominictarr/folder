@@ -1,6 +1,12 @@
 var cardinal = require('cardinal-spline-js/src/curve_calc').getCurvePoints
 var _ = require('./vector')
 
+var keel = [[0, 15], [65, 6], [180, 5], [240, 10]]
+var chine = [[0, 0], [60, 14], [120, 22], [200, 17], [240, 9]]
+var keelSpline = resample(curve(keel, 40), 11)
+var chineSpline = resample(curve(chine, 40), 11)
+var hole_space = 0, teeth = (chineSpline.length - 1) / 2, tooth_height = 1
+var space = 2.5, space2 = tooth_height+2
 function curve (__points, steps) {
   var points = []
   var _points = cardinal(__points.reduce(function (a, b) {
@@ -21,13 +27,26 @@ function toPath(points) {
 function toTeeth (path, dir, odd) {
   var points = []
   for(var i = 0; i < path.length; i++) {
-    if(true && i) {
+    //first tooth
+    if(!i) {
+      var v = _.mul(_.toVector(_.toAngle(_.sub(path[i], path[i+1])) - (Math.PI/2)), tooth_height)
+      var _e = _.add(path[i], v)
+      if(odd) {
+        points.push(_e)
+        points.push(path[i])
+      } else {
+        points.push(path[i])
+        points.push(_e)
+      }
+    }
+    else {
+    //the rest of the teeth
       var v = _.mul(_.toVector(_.toAngle(
           //on the very first point, use the next point
           //on the others, use the previous point.
           !i ? v.sub(path[i], path[i+1]) :
           _.sub(path[i], path[i-1])
-        ) - (Math.PI/2)), 2)
+        ) - (Math.PI/2)), tooth_height)
 
       var _e = _.add(path[i], v)
       if(!!(i % 2) == !!odd) {
@@ -36,17 +55,6 @@ function toTeeth (path, dir, odd) {
       } else  {
         points.push(_e)
         if(true && i) points.push(path[i])
-      }
-
-    } else {
-      var v = _.mul(_.toVector(_.toAngle(_.sub(path[i], path[i+1])) - (Math.PI/2)), 2)
-      var _e = _.add(path[i], v)
-      if(odd) {
-        points.push(_e)
-        points.push(path[i])
-      } else {
-        points.push(path[i])
-        points.push(_e)
       }
     }
   }
@@ -89,13 +97,6 @@ function resample (path, parts) {
     output.push(path[path.length-1])
   return output
 }
-
-
-var keel = [[0, 15], [65, 6], [180, 5], [240, 10]]
-var chine = [[0, 0], [60, 14], [120, 22], [200, 17], [240, 9]]
-
-var keelSpline = resample(curve(keel, 40), 21)
-var chineSpline = resample(curve(chine, 40), 21)
 
 function side(port) {
   return [].concat(
@@ -141,38 +142,56 @@ console.log('<rect fill="none" stroke="green" x="0" y="120" width="240" height="
 function cut (path, colour) {
   console.log('<path fill="none" stroke="' + (colour || 'red') + '" d="'+toPath(path) + ' Z"/>')
 }
+//
+//function _toHoles(path, initial, step) {
+//  var points = _resample(path, function (length, steps) {
+//    return steps == 0 ? initial : step
+//  })
+//  points.shift()
+//  return points
+//}
+//
+//function old_toHoles(path, odd) {
+//  path = curve(path, 40)
+//  var length = _.length(path)
+//  var tooth_length = (length/(teeth*2))
+//  var space = 3
+////  var second = tooth_length - (space*5)
+//  var offset = odd ? 0 :  tooth_length //14.5 
+//  console.error("LENGTH", length/teeth)
+//  return [].concat(
+//    _toHoles(path, space + offset, length/teeth)
+//  ).concat(
+//    _toHoles(path, offset+tooth_length - (space*2), length/teeth)
+//  )
+//}
 
-function _toHoles(path, initial, step) {
-//  initial = initial || 10
-//  parts = parts || 21
-  var points = _resample(path, function (length, steps) {
-    console.error('toHoles', length, steps)
-    return steps == 0 ? initial : step //(length + initial) / (parts-steps)
-  })
-  points.shift()
-//  points[0] = _.add(points[0], [edge, 0])
-//  points[points.length-1] = _.add(points[points.length-1], [-edge, 0])
-  return points
+function eachEdge(path, iter) {
+  for(var i = 0; i +1 < path.length; i += 1) {
+    iter(path[i], path[i+1], i)
+  }
+
 }
 
-function toHoles(path, odd) {
-  path = curve(path, 40)
-  var length = _.length(path)
-  var second = 7
-  var offset = odd ? 2 : 14.5
-  return [].concat(
-   // []
-    _toHoles(path, offset, length/10)
-  ).concat(
-    _toHoles(path, second+offset, length/10)
-//    _toHoles(path, odd ? 2+second : 14.5+second, length/20.2)
-  )
+function toHoles (path, odd, space, space2) {
+//  space = 3, space2 = 5
+  var output = []
+  eachEdge(path, function (a, b, i) {
+    console.error(i, i%2, odd)
+    if(!(i%2) == odd) {
+      var norm = _.normalize(_.sub(b, a))
+      var right = _.toVector(_.toAngle(norm)+Math.PI/2)
+      output.push(_.add(a, _.add(_.mul(norm, space), _.mul(right, space2))))
+      output.push(_.add(b, _.add(_.mul(norm, -space), _.mul(right, space2))))
+    }
+  })
+  return output
 }
 
 
 function drill(holes) {
   holes.forEach(function (e, i) {
-    console.log('<circle fill="none" stroke="black" cx="'+e[0]+'" cy="'+e[1]+'" r="0.5" />');
+    console.log('<circle fill="none" stroke="black" cx="'+e[0]+'" cy="'+e[1]+'" r="0.3" />');
   })
 }
 
@@ -181,36 +200,33 @@ function g() {
 
 var _keel = keel.slice()
 
-var hole_space = 2.5
-
 //drill(toHoles(flip(_keel), 2))
 //side
+
+
 cut(parts[0], "red")
   console.log("<g>")
-  g(drill(_.translate(toHoles(chine, true), [0, _.bottom(parts[0]) - _.bottom(chine) - hole_space])))
+  g(drill(_.translate(toHoles(chineSpline, true, space, -space2), [0, _.bottom(parts[0]) - _.bottom(chine)])))
   console.log("</g>")
 
 cut(parts[1], "red")
   console.log("<g>")
-  g(drill(_.translate(flip(toHoles(chine, false)), [0, _.top(parts[1]) - _.top(chine) + hole_space])))
-  g(drill(_.translate(flip(toHoles(keel, false)), [0, _.bottom(parts[1]) - _.bottom(flip(toHoles(keel))) - hole_space])))
+  g(drill(_.translate(toHoles(flip(chineSpline), false, space, space2), [0, _.top(parts[1]) - _.top(chine)])))
+  var b_holes = toHoles(flip(keelSpline), false, space, -space2)
+//  g(drill(_.translate(b_holes, [0, _.bottom(parts[1]) - _.bottom(b_holes)])))
+  g(drill(_.translate(b_holes, [0, _.bottom(parts[1]) - _.bottom(flip(keel))])))
   console.log("</g>")
 
 cut(parts[2], "red")
   console.log("<g>")
-//  g(drill(_.translate(toHoles(keel, 2), [0, _.top(parts[2]) - _.top(keel) + 5])))
-//  g(drill(_.translate(toHoles(chine, 2), [0, _.bottom(parts[2]) - _.bottom(chine) - 5])))
-  g(drill(_.translate(toHoles(keel, true), [0, _.top(parts[2]) - _.top(keel) + hole_space])))
-  g(drill(_.translate(toHoles(chine, false), [0, _.bottom(parts[2]) - _.bottom(chine) - hole_space])))
+  g(drill(_.translate(toHoles(keelSpline, true, space, space2), [0, _.top(parts[2]) - _.top(keel)])))
+  g(drill(_.translate(toHoles(chineSpline, false, space, -space2), [0, _.bottom(parts[2]) - _.bottom(chine)])))
   console.log("</g>")
 
 cut(parts[3], "red")
   console.log("<g>")
-  g(drill(_.translate(toHoles(flip(chine), true), [0, _.top(parts[3]) - _.top(chine) + hole_space])))
+  g(drill(_.translate(toHoles(flip(chineSpline), true, space, space2), [0, _.top(parts[3]) - _.top(chine)])))
   console.log("</g>")
-
-//drill(_.translate(flip(toHoles(keel, 2)), [0, _.bottom(parts[1]) - _.bottom(flip(keel)) - 5]))
-//drill(_.translate(toHoles(keel, 2), [0, _.top(parts[2]) - _.top(keel) + 5]))
 
 
 console.log('</svg>')
