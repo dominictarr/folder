@@ -23,6 +23,10 @@ function mul(v, s) {
   return [v[0]*s, v[1]*s]
 }
 
+function div(v, s) {
+  return [v[0]/s, v[1]/s]
+}
+
 //total length _ALONG_ a path
 function length (p) {
   if(isShape(p)) {
@@ -34,6 +38,11 @@ function length (p) {
 
   return Math.sqrt(p[0]*p[0]+p[1]*p[1])
 }
+
+function normalize (v) {
+  return div(v, length(v))
+}
+
 
 function top (p) {
   var min = Infinity
@@ -85,12 +94,10 @@ function translate(shape, move) {
 }
 
 module.exports = {
-  toAngle, toVector, mul, add, sub, length, height, isShape, isVector, round, translate,
+  toAngle, toVector, mul, div, add, sub, length, height, isShape, isVector, round, translate,
+  normalize,
   top, bottom
 }
-
-
-
 
 
 
