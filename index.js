@@ -1,12 +1,15 @@
 var cardinal = require('cardinal-spline-js/src/curve_calc').getCurvePoints
 var _ = require('./vector')
 
+var scale = 5
+
 var keel = [[0, 15], [65, 6], [180, 5], [240, 10]]
 var chine = [[0, 0], [60, 14], [120, 22], [200, 17], [240, 9]]
 var keelSpline = resample(curve(keel, 40), 11)
 var chineSpline = resample(curve(chine, 40), 11)
 var hole_space = 0, teeth = (chineSpline.length - 1) / 2, tooth_height = 1
 var space = 2.5, space2 = tooth_height+2
+var hole_radius = 0.3
 function curve (__points, steps) {
   var points = []
   var _points = cardinal(__points.reduce(function (a, b) {
@@ -15,13 +18,6 @@ function curve (__points, steps) {
   for(var i = 0; i < _points.length; i += 2)
     points.push([_points[i], _points[i+1]])
   return points
-}
-
-function toPath(points) {
-  var s = 'M '+points[0].join(',') + ' '
-  for(var i = 1; i < points.length; i++)
-    s += 'L '+points[i].join(',') + ' '
-  return s
 }
 
 function toTeeth (path, dir, odd) {
@@ -132,39 +128,25 @@ var parts = [
   _.translate(flip(side()), [0, 170])
 ]
 
-console.log('<svg viewBox="-10 -10 250 250" xmlns="http://www.w3.org/2000/svg">')
+console.log('<svg viewBox="' +[-10*scale, -10*scale, 250*scale, 250+scale].join(' ')+'" xmlns="http://www.w3.org/2000/svg">')
 
 //show plywood sheets...
-console.log('<rect fill="none" stroke="green" x="0" y="0" width="240" height="120" />')
-console.log('<rect fill="none" stroke="green" x="0" y="120" width="240" height="120" />')
+console.log('<rect fill="none" stroke="green" x="0" y="0" width="'+scale*240+'" height="'+120*scale+'" />')
+console.log('<rect fill="none" stroke="green" x="0" y="'+scale*120+'" width="'+scale*240+'" height="'+scale*120+'" />')
+
+
+
+function toPath(points) {
+  var s = 'M '+_.mul(points[0], scale).join(',') + ' '
+  for(var i = 1; i < points.length; i++)
+    s += 'L '+_.mul(points[i], scale).join(',') + ' '
+  return s
+}
 
 
 function cut (path, colour) {
   console.log('<path fill="none" stroke="' + (colour || 'red') + '" d="'+toPath(path) + ' Z"/>')
 }
-//
-//function _toHoles(path, initial, step) {
-//  var points = _resample(path, function (length, steps) {
-//    return steps == 0 ? initial : step
-//  })
-//  points.shift()
-//  return points
-//}
-//
-//function old_toHoles(path, odd) {
-//  path = curve(path, 40)
-//  var length = _.length(path)
-//  var tooth_length = (length/(teeth*2))
-//  var space = 3
-////  var second = tooth_length - (space*5)
-//  var offset = odd ? 0 :  tooth_length //14.5 
-//  console.error("LENGTH", length/teeth)
-//  return [].concat(
-//    _toHoles(path, space + offset, length/teeth)
-//  ).concat(
-//    _toHoles(path, offset+tooth_length - (space*2), length/teeth)
-//  )
-//}
 
 function eachEdge(path, iter) {
   for(var i = 0; i +1 < path.length; i += 1) {
@@ -174,7 +156,6 @@ function eachEdge(path, iter) {
 }
 
 function toHoles (path, odd, space, space2) {
-//  space = 3, space2 = 5
   var output = []
   eachEdge(path, function (a, b, i) {
     console.error(i, i%2, odd)
@@ -191,7 +172,7 @@ function toHoles (path, odd, space, space2) {
 
 function drill(holes) {
   holes.forEach(function (e, i) {
-    console.log('<circle fill="none" stroke="black" cx="'+e[0]+'" cy="'+e[1]+'" r="0.3" />');
+    console.log('<circle fill="none" stroke="black" cx="'+e[0]*scale+'" cy="'+e[1]*scale+'" r="'+hole_radius*scale+'" />');
   })
 }
 
@@ -200,7 +181,6 @@ function g() {
 
 var _keel = keel.slice()
 
-//drill(toHoles(flip(_keel), 2))
 //side
 
 
@@ -230,7 +210,5 @@ cut(parts[3], "red")
 
 
 console.log('</svg>')
-
-
 
 
