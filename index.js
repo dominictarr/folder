@@ -128,7 +128,7 @@ var parts = [
   _.translate(flip(side()), [0, 170])
 ]
 
-console.log('<svg viewBox="' +[-10*scale, -10*scale, 250*scale, 250+scale].join(' ')+'" xmlns="http://www.w3.org/2000/svg">')
+console.log('<svg viewBox="' +[-10*scale, -10*scale, 250*scale, 250*scale].join(' ')+'" xmlns="http://www.w3.org/2000/svg">')
 
 //show plywood sheets...
 console.log('<rect fill="none" stroke="green" x="0" y="0" width="'+scale*240+'" height="'+120*scale+'" />')
